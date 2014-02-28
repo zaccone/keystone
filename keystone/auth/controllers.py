@@ -306,6 +306,25 @@ class Auth(controller.V3Controller):
         super(Auth, self).__init__(*args, **kw)
         config.setup_authentication()
 
+    def federated_authentication(self, context, identity_provider='CERN',
+                                 protocol='saml2'):
+        """
+        Build faked HTTP request body for federated authentication and inject
+        it into the ``authenticate_for_token`` function.
+
+        """
+        auth = {
+            'identity': {
+                'methods': ['saml2'],
+                'saml2': {
+                    'identity_provider': identity_provider,
+                    'protocol': protocol
+                }
+            }
+        }
+
+        return self.authenticate_for_token(context, auth=auth)
+
     def authenticate_for_token(self, context, auth=None):
         """Authenticate user and issue a token."""
         include_catalog = 'nocatalog' not in context['query_string']
