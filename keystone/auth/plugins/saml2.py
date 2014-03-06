@@ -27,7 +27,7 @@ CONF = config.CONF
 LOG = log.getLogger(__name__)
 
 
-@dependency.requires('token_api', 'federation_api')
+@dependency.requires('federation_api', 'identity_api', 'token_api')
 class Saml2(auth.AuthMethodHandler):
 
     method = 'saml2'
@@ -58,10 +58,12 @@ class Saml2(auth.AuthMethodHandler):
     def _handle_scoped_token(self, auth_payload):
         token_ref = self.token_api.get_token(auth_payload['id'])
         self._validate_expiration(token_ref)
-        groups = token_ref['user'][federation.GROUPS]
+        group_ids = [group['id'] for group in
+                     token_ref['user'][federation.GROUPS]]
+        self._validate_groups(group_ids)
         return {
             'user_id': token_ref['user_id'],
-            'group_ids': [group['id'] for group in groups]
+            'group_ids': group_ids
         }
 
     def _handle_unscoped_token(self, context, auth_payload):
@@ -75,6 +77,8 @@ class Saml2(auth.AuthMethodHandler):
         rules = jsonutils.loads(mapping['rules'])
         rule_processor = utils.RuleProcessor(rules)
         mapped_properties = rule_processor.process(assertion)
+        self._validate_groups(mapped_properties['group_ids'])
+
         return {
             'user_id': parse.quote(mapped_properties['name']),
             'group_ids': mapped_properties['group_ids'],
@@ -85,3 +89,14 @@ class Saml2(auth.AuthMethodHandler):
     def _validate_expiration(self, token_ref):
         if timeutils.utcnow() > token_ref['expires']:
             raise exception.Unauthorized(_('Federation token is expired'))
+
+    def _validate_groups(self, group_ids):
+        if not group_ids:
+            raise exception.Unauthorized(_('No groups provided'))
+
+        for group_id in group_ids:
+            try:
+                self.identity_api.get_group(group_id)
+            except exception.GroupNotFound:
+                raise exception.UnexpectedError(_('Missing '
+                                                  'group in the backend'))
