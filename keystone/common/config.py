@@ -348,7 +348,9 @@ FILE_OPTIONS = {
         cfg.StrOpt('driver',
                    default='keystone.contrib.federation.'
                            'backends.sql.Federation',
-                   help='Keystone Federation backend driver.')],
+                   help='Keystone Federation backend driver.'),
+        cfg.StrOpt('assertion_prefix',
+                   default='')],
 
     'policy': [
         cfg.StrOpt('driver',
