@@ -249,6 +249,15 @@ class Auth(auth_controllers.Auth):
 
         return self.authenticate_for_token(context, auth=auth)
 
+    def federated_authentication_from_assertion(self, context):
+        protocol = 'saml2'
+        try:
+            identity_provider = context['environment']['Shib-Identity-Provider']
+        except KeyError:
+            raise exception.Unauthorized(('Missing parameter '
+                                          'Shib-Identity-Provider'))
+        return self.federated_authentication(context, identity_provider,
+                                             protocol)
 
 @dependency.requires('assignment_api')
 class DomainV3(controller.V3Controller):

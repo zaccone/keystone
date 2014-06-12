@@ -181,6 +181,12 @@ class FederationExtension(wsgi.ExtensionRouter):
             conditions=dict(method=['GET']))
 
         mapper.connect(
+            self._construct_url('websso'),
+            controller=auth_controller,
+            action='federated_authentication_from_assertion',
+            conditions=dict(method=['GET', 'POST'])
+        )
+        mapper.connect(
             self._construct_url('identity_providers/'
                                 '{identity_provider}/protocols/'
                                 '{protocol}/auth'),
